@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/livghit/go-auth-spinup/internal/api"
+	"github.com/livghit/go-auth-spinup/internal/models"
 )
 
 // What is this middleware suppoused to do ?
@@ -19,15 +20,14 @@ func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		jwt := r.Header.Get("Authorization")
-		slog.Info("The jwt recived is -> %s", jwt)
 
 		// look if there is a jwt token .
-		if jwt == "" {
+		if jwt == "" || len(strings.Split(jwt, " ")) <= 1 {
 			authFailed(w)
 			return
 		}
 		// if there is a jwt token look if its the form Bearer: token
-		valid := validateJWT(jwt)
+		valid := validateRequest(jwt)
 
 		if valid == false {
 			authFailed(w)
@@ -41,18 +41,19 @@ func Auth(next http.Handler) http.Handler {
 
 func authFailed(w http.ResponseWriter) {
 	data := map[string]interface{}{
-		"error": "Authorization failed",
+		"error": "Authorization failed . Please check your're authorization header for the right Syntax ex. Bearer token-for-the-api",
 	}
-	slog.Info("Auth failed")
+	slog.Info("Authorization failed .")
 	w.WriteHeader(http.StatusUnauthorized)
 	api.WriteJSON(data, w)
 }
 
-func validateJWT(jwt string) bool {
+func validateRequest(jwt string) bool {
 	if jwt != "" {
 		// assure token has prefix of Bearer
 		token := strings.Split(jwt, " ")[1]
 		slog.Info(fmt.Sprintf("token is -> %s", token))
+		models.ValidateJWT(jwt)
 
 		// implement logic for token validation
 
